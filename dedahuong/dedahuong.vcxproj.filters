@@ -33,12 +33,18 @@
     <ClInclude Include="pwmTimer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pwmLib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="control.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="hc05.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pwmLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

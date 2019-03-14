@@ -85,12 +85,14 @@
     <ClInclude Include="Configuration.h" />
     <ClInclude Include="control.h" />
     <ClInclude Include="hc05.h" />
+    <ClInclude Include="pwmLib.h" />
     <ClInclude Include="pwmTimer.h" />
     <ClInclude Include="__vm\.dedahuong.vsarduino.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="control.cpp" />
     <ClCompile Include="hc05.cpp" />
+    <ClCompile Include="pwmLib.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
