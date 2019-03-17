@@ -52,8 +52,6 @@ void pulseGenMecanum(int _num, int _time = 0) { //use timer 1 & timer 3
 			digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
 			digitalWrite(PIN_DIR_MECANUM_RIGHT, DIRECTION_MECANUM_RIGHT);
 			genPWMTimer1(_num);
-			delay(1000);
-			Serial.println("haha1");
 			//TCCR3B |= (1 << CS32);// bat timer3 || prescaler = 256
 		}
 		else {
@@ -71,10 +69,12 @@ void pulseGenOmni(int _num, int _time = 0) { // use timer 4,5
 	if (_time == 0) {
 		if (_num>0) {
 			digitalWrite(PIN_DIR_OMNI, DIRECTION_OMNI);
+			//delay(50);
 			genPWMTimer4(_num);
 		}
 		else {
 			digitalWrite(PIN_DIR_OMNI, !DIRECTION_OMNI);
+			//delay(50);
 			genPWMTimer4(-_num);
 		}
 		
@@ -120,6 +120,7 @@ void initTimer3() {
 	TCCR3A = 0;
 	TIMSK3 = 0;
 	TIMSK3 |= (1 << TOIE3);
+	TCCR3B |= (1 << CS32);
 }
 
 unsigned short settingPulseUseTimer3(int _time) {
@@ -201,6 +202,7 @@ void genPWMTimer4(int frequency) {//use timer4
 void runStraight(int _numMeca, int _numOm) {
 	pulseGenMecanum(_numMeca);
 	pulseGenOmni(_numOm);
+	
 }
 void rotateClockWise(int _num) {
 	digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
@@ -263,6 +265,7 @@ void runTimer1() {	TCCR1B |= (1 << CS10); }
 void runTimer4() {	TCCR4B |= (1 << CS40); }
 void stopTimer1(){	TCCR1B &= 0xF8; }
 void stopTimer4(){	TCCR4B &= 0xF8; }
+void stopTimer3(){	TCCR3B &= 0xF8; }
 
 
 // 5 distance //
@@ -316,14 +319,16 @@ void timerFuncIncreSpeed(int _time, int* _arrA, int* _arrB) {
 		settingTimer4(_arrB[count]);
 		count++;
 		TCNT3 = _time;
-		mode += 1;
-		count &= 0;
+		//mode += 1;
+		//count &= 0;
 		//1000
 	}
 	else {
+		//stopTimer3();
 		stopTimer1();
 		stopTimer4();
 	}
 }
+
 
 #endif // !_PWM_TIMER_H_

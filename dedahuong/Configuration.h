@@ -11,9 +11,9 @@
 #define PIN_PULSE_MECANUM_RIGHT 11
 #define PIN_DIR_MECANUM_RIGHT 10
 
-#define DIRECTION_OMNI 1 //quy dinh chieu duong +
-#define DIRECTION_MECANUM_LEFT 0 
-#define DIRECTION_MECANUM_RIGHT 1
+#define DIRECTION_OMNI 0 //quy dinh chieu duong +
+#define DIRECTION_MECANUM_LEFT 1 
+#define DIRECTION_MECANUM_RIGHT 0
 
 #define LOCK 2
 #define FREE_STATE 0
