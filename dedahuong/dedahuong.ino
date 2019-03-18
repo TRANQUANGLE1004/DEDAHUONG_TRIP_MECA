@@ -131,6 +131,14 @@ ISR(TIMER3_OVF_vect) {
 		}
 		break;
 	case 1:
+		switch (mode)
+		{
+		case 0:
+			timerFuncIncreFre(10, 252, 0, 100);
+			break;
+		default:
+			break;
+		}
 		break;
 	default:
 		break;

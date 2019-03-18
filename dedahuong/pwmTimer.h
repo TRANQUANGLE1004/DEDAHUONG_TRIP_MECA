@@ -316,7 +316,10 @@ void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 	}
 	else {
 		if (_smooth == count) {
-			stopState();
+			TCNT3 = time;
+			count &= 0;
+			mode &= 0;
+			task++;
 			return;
 		}
 		settingTimer1(_fre, _firstValue + step * count);
