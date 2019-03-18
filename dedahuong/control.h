@@ -24,7 +24,7 @@ void runRight(int _speed);
 #endif // !_CONTROL_H_
 
 #ifdef _CONTROL_H_	//potition mode
-void stopState();
+//void stopState();
 void hamtangtoc(int _time);
 //void runStraight(int _numMeca,int _numOm); //_num is pulse /s
 #endif // _CONTROL_H_

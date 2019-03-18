@@ -45,7 +45,6 @@ void pulseGenMecanum(int _num, int _time = 0) { //use timer 1 & timer 3
 			genPWMTimer1(-_num);
 		}
 		
-		
 	}
 	else {
 		if (_num > 0) {
@@ -111,8 +110,8 @@ void genPWMTimer1(int frequency) {//use timer1
 	_val = (unsigned short)t - 1;
 	//Serial.println(_val);
 	ICR1 = _val;
-	OCR1A = _val/2;
-	OCR1C = _val/2;
+	OCR1A = 1984;
+	OCR1C = 1984;
 	TCCR1B |= (1 << CS10); // khoi dong pwm
 }
 void initTimer3() {
@@ -195,15 +194,44 @@ void genPWMTimer4(int frequency) {//use timer4
 	//
 	//Serial.println(_val);
 	ICR4 = _val;
-	OCR4A = _val/2;
+	OCR4A = 1984;
 	TCCR4B |= (1 << CS40);
 }
 
 void runStraight(int _numMeca, int _numOm) {
 	pulseGenMecanum(_numMeca);
 	pulseGenOmni(_numOm);
-	
 }
+void runSpeedMeca(int _speed) {
+	if (_speed > 0) {
+		digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
+		digitalWrite(PIN_DIR_MECANUM_RIGHT, DIRECTION_MECANUM_RIGHT);
+		analogWrite(PIN_PULSE_MECANUM_LEFT, _speed);
+		analogWrite(PIN_PULSE_MECANUM_RIGHT, _speed);
+	}
+	else {
+		digitalWrite(PIN_DIR_MECANUM_LEFT, !DIRECTION_MECANUM_LEFT);
+		digitalWrite(PIN_DIR_MECANUM_RIGHT, !DIRECTION_MECANUM_RIGHT);
+		analogWrite(PIN_PULSE_MECANUM_LEFT, -_speed);
+		analogWrite(PIN_PULSE_MECANUM_RIGHT, -_speed);
+	}
+}
+void runSpeedOm(int _speed) {
+	if (_speed > 0) {
+		digitalWrite(PIN_DIR_OMNI, DIRECTION_OMNI);
+		analogWrite(PIN_PULSE_OMNI, _speed);
+	}
+	else {
+		digitalWrite(PIN_DIR_OMNI, !DIRECTION_OMNI);
+		analogWrite(PIN_PULSE_OMNI, -_speed);
+	}
+}
+void runSpeed(int _speedMeca, int _speedOm) {
+	runSpeedMeca(_speedMeca);
+	runSpeedOm(_speedOm);
+}
+
+
 void rotateClockWise(int _num) {
 	digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
 	digitalWrite(PIN_DIR_MECANUM_RIGHT, !DIRECTION_MECANUM_RIGHT);
@@ -222,15 +250,6 @@ void rotateInvertClockWise(int _num) {
 
 
 
-void fucking(int _numRota, int _time) {
-	genPWMTimer1(_numRota*1000);////// mecanum
-	genPWMTimer4(_numRota*800);
-	timer3 = settingPulseUseTimer3(_time);
-}
-
-void increasePulse(int _numPulse = 10000, int _time = 1000) {
-	fucking(1, 50);
-}
 //***********************************************************************************************************************
 
 void run(int maxFre, int _pulseSum, byte _mode = 0) { // 12000 pulse in 3s
@@ -251,25 +270,78 @@ unsigned short getBottomTimerNomalMode(int _time) {
 	return _val;
 }
 
-void settingTimer1(int _icrVal) { // use Fast PWM
-	OCR1A = _icrVal / 2;
-	OCR1C = _icrVal / 2;
-	ICR1 = _icrVal;
+void settingTimer1(int _icrVal, int _val = 0) { // use Fast PWM
+	if (_val == 0) { // default duty cycle : 50%
+		OCR1A = _icrVal/2;
+		OCR1C = _icrVal/2;
+		ICR1 = _icrVal;
+	}
+	else {
+		OCR1A = (int)((float)_val*(float)_icrVal/255.0f);
+		OCR1C = (int)((float)_val*(float)_icrVal / 255.0f);
+		ICR1 = _icrVal;
+	}
+	
 	// Notice !!!
 }
-void settingTimer4(int _icrVal) { // use Fast PWM
-	OCR4A = _icrVal / 2;
-	ICR4 = _icrVal;
+void settingTimer4(int _icrVal, int _val = 0) { // use Fast PWM
+	if (_val == 0) { // default duty cycle : 50%
+		OCR4A = _icrVal/2;
+		ICR4 = _icrVal;
+	}
+	else {
+		OCR4A = (int)((float)_val*(float)_icrVal / 255.0f);
+		ICR4 = _icrVal;
+	}
+
 }
 void runTimer1() {	TCCR1B |= (1 << CS10); }
 void runTimer4() {	TCCR4B |= (1 << CS40); }
 void stopTimer1(){	TCCR1B &= 0xF8; }
 void stopTimer4(){	TCCR4B &= 0xF8; }
 void stopTimer3(){	TCCR3B &= 0xF8; }
-
+void stopState() {
+	OCR1A = 1984;
+	OCR1C = 1984;
+	OCR4A = 1984;
+}
 
 // 5 distance //
 // _firstValueChanelA is ICR value
+void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000) {
+	unsigned short time = getBottomTimerNomalMode(_time);
+	int step = (int)((float)(_endValue - _firstValue) / (float)_smooth);
+	if (count == 0) {
+		//
+		settingTimer1(_fre,_firstValue);
+		settingTimer4(_fre,_firstValue);
+		/*OCR1A = _icrVal;
+		OCR1C = _icrVal;
+		OCR4A = _icrVal;*/
+		runTimer1();
+		runTimer4();
+		TCNT3 = _time;
+		TCCR3B |= (1 << CS32);
+		//
+		count++;
+		Serial.println("hihi0");
+	}
+	else {
+		if (_smooth == count) { 
+			settingTimer1(_fre, 253);
+			settingTimer4(_fre, 253);
+			return; 
+		}
+		settingTimer1(_fre, _firstValue + step * count);
+		settingTimer4(_fre, _firstValue + step * count);
+		TCNT3 = _time;
+		TCCR3B |= (1 << CS32);
+		count++;
+		Serial.println("hihi");
+	}
+}
+
+
 void timerFuncIncreSpeed(int _time, int* _arrA, int* _arrB) {
 	unsigned short time = getBottomTimerNomalMode(_time);
 	if (count == 0) {
@@ -329,6 +401,5 @@ void timerFuncIncreSpeed(int _time, int* _arrA, int* _arrB) {
 		stopTimer4();
 	}
 }
-
 
 #endif // !_PWM_TIMER_H_

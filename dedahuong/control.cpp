@@ -93,10 +93,6 @@ void runRight(int _speed){
 	controlMecanumRight(_speed);
 }
 
-void stopState(){
-	TCCR1B &= 0xF8;
-	TCCR4B &= 0xF8;
-}
 
 void hamtangtoc(int _time) {
 
