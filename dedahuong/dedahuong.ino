@@ -102,6 +102,9 @@ void loop() {
 //}
 
 ISR(TIMER3_OVF_vect) {
+	switch (task)
+	{
+	case 0:
 		switch (mode)
 		{
 		case 0:// mode tang toc
@@ -126,6 +129,13 @@ ISR(TIMER3_OVF_vect) {
 		default:
 			break;
 		}
+		break;
+	case 1:
+		break;
+	default:
+		break;
+	}
+		
 	
 	//if (mode == 0) { // tang toc
 	////Serial.println("hello");

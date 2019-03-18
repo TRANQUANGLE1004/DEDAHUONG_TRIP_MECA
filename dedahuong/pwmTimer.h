@@ -13,6 +13,7 @@ use pin ???
 //
 volatile int count = 0;
 volatile int mode = 0;
+volatile int task = 0;
 //
 unsigned short timer3;
 void genPWMTimer1(int frequency);
@@ -388,22 +389,5 @@ void timerFuncIncreSpeed(int _time, int* _arrA, int* _arrB) {
 	}
 }
 
-//void runConstSpeed(int _time) {
-//	if (_time > 1000) {
-//		if (count == 0) {
-//			TCNT3 = getBottomTimerNomalMode(_time);
-//			count++;
-//		}
-//		else {
-//			
-//		}
-//	}
-//	else {
-//
-//		TCNT3 = getBottomTimerNomalMode(_time);
-//		count &= 0;
-//		mode &= 2;
-//	}
-//}
 
 #endif // !_PWM_TIMER_H_
