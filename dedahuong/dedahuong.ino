@@ -10,13 +10,11 @@
 //#include"hc05.h"
 //
 char recv;
-int _time = getBottomTimerNomalMode(50);
 int valueIcrA[5] = { 16000,8000,4000,1800,1600 };
 int valueIcrB[5] = { 20000,10000,5000,2250,2000 };
 int valueInvertA[5] = { 1600,1800,4000,8000,16000 };
 int valueInvertB[5] = { 2000,2250,5000,10000,20000 };
 int speed = 8000;
-int state = 0;
 unsigned long time = 0;
 //unsigned char speed = 1000;
 // the setup function runs once when you press reset or power the board
@@ -104,15 +102,32 @@ void loop() {
 //}
 
 ISR(TIMER3_OVF_vect) {
-	switch (mode)
-	{
-	case 0:
-		break;
-	default:
-		break;
-	}
+		switch (mode)
+		{
+		case 0:// mode tang toc
+			timerFuncIncreFre(10, 252, 0, 100);
+			//Serial.println("hihi");
+			break;
+		case 1:// mode chay on dinh toc do trong bao nhieu ms
+			if (count == 0) {
+				TCNT3 = getBottomTimerNomalMode(1000);
+				count++;
+			}
+			else if (count == 1) {
+				TCNT3 = getBottomTimerNomalMode(1000);
+				count &= 0;
+				mode++;
+				//count++;
+			}
+			break;
+		case 2: // ham giam toc
+			timerFuncDecreFre(10, 0, 252, 100);
+			break;
+		default:
+			break;
+		}
+	
 	//if (mode == 0) { // tang toc
-	timerFuncIncreFre(_time,253,150,100);
 	////Serial.println("hello");
 	//}
 	//else if (mode == 1) { // chay on dinh

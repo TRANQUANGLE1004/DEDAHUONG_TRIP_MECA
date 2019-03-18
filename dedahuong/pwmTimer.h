@@ -21,17 +21,6 @@ unsigned short settingPulseUseTimer3(int _time);
 void settingPulseUseTimer5(int _time);
 // _num is pulse/1s ex: 1000 pulse/second
 
-//void controlOmni(int _num) {
-//	if (_num > 0) {
-//		digitalWrite(PIN_DIR_OMNI, DIRECTION_OMNI);
-//		genPWMTimer4(_num);
-//	}
-//	else {
-//		digitalWrite(PIN_DIR_OMNI, !DIRECTION_OMNI);
-//		genPWMTimer4(_num);
-//	}
-//}
-
 void pulseGenMecanum(int _num, int _time = 0) { //use timer 1 & timer 3
 	if (_time == 0) {
 		if (_num > 0) {
@@ -82,8 +71,6 @@ void pulseGenOmni(int _num, int _time = 0) { // use timer 4,5
 		// timer 5
 	}
 }
-
-
 void initPwmTimer1() {
 	TCCR1A = 0;// reset reg
 	TCCR1B = 0;// reset reg
@@ -198,40 +185,6 @@ void genPWMTimer4(int frequency) {//use timer4
 	TCCR4B |= (1 << CS40);
 }
 
-void runStraight(int _numMeca, int _numOm) {
-	pulseGenMecanum(_numMeca);
-	pulseGenOmni(_numOm);
-}
-void runSpeedMeca(int _speed) {
-	if (_speed > 0) {
-		digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
-		digitalWrite(PIN_DIR_MECANUM_RIGHT, DIRECTION_MECANUM_RIGHT);
-		analogWrite(PIN_PULSE_MECANUM_LEFT, _speed);
-		analogWrite(PIN_PULSE_MECANUM_RIGHT, _speed);
-	}
-	else {
-		digitalWrite(PIN_DIR_MECANUM_LEFT, !DIRECTION_MECANUM_LEFT);
-		digitalWrite(PIN_DIR_MECANUM_RIGHT, !DIRECTION_MECANUM_RIGHT);
-		analogWrite(PIN_PULSE_MECANUM_LEFT, -_speed);
-		analogWrite(PIN_PULSE_MECANUM_RIGHT, -_speed);
-	}
-}
-void runSpeedOm(int _speed) {
-	if (_speed > 0) {
-		digitalWrite(PIN_DIR_OMNI, DIRECTION_OMNI);
-		analogWrite(PIN_PULSE_OMNI, _speed);
-	}
-	else {
-		digitalWrite(PIN_DIR_OMNI, !DIRECTION_OMNI);
-		analogWrite(PIN_PULSE_OMNI, -_speed);
-	}
-}
-void runSpeed(int _speedMeca, int _speedOm) {
-	runSpeedMeca(_speedMeca);
-	runSpeedOm(_speedOm);
-}
-
-
 void rotateClockWise(int _num) {
 	digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
 	digitalWrite(PIN_DIR_MECANUM_RIGHT, !DIRECTION_MECANUM_RIGHT);
@@ -301,9 +254,8 @@ void stopTimer1(){	TCCR1B &= 0xF8; }
 void stopTimer4(){	TCCR4B &= 0xF8; }
 void stopTimer3(){	TCCR3B &= 0xF8; }
 void stopState() {
-	OCR1A = 1984;
-	OCR1C = 1984;
-	OCR4A = 1984;
+	settingTimer1(8000, 253);
+	settingTimer4(8000, 253);
 }
 
 // 5 distance //
@@ -320,7 +272,7 @@ void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 		OCR4A = _icrVal;*/
 		runTimer1();
 		runTimer4();
-		TCNT3 = _time;
+		TCNT3 = time;
 		TCCR3B |= (1 << CS32);
 		//
 		count++;
@@ -328,14 +280,48 @@ void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 	}
 	else {
 		if (_smooth == count) { 
-			settingTimer1(_fre, 253);
-			settingTimer4(_fre, 253);
+			//stopState();
+			TCNT3 = time;
+			count &= 0;
+			mode++;
 			return; 
 		}
 		settingTimer1(_fre, _firstValue + step * count);
 		settingTimer4(_fre, _firstValue + step * count);
-		TCNT3 = _time;
+		TCNT3 = time;
+		//TCCR3B |= (1 << CS32);
+		count++;
+		Serial.println("hihi");
+	}
+}
+
+void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000) {
+	unsigned short time = getBottomTimerNomalMode(_time);
+	int step = (int)((float)(_endValue - _firstValue) / (float)_smooth);
+	if (count == 0) {
+		//
+		settingTimer1(_fre, _firstValue);
+		settingTimer4(_fre, _firstValue);
+		/*OCR1A = _icrVal;
+		OCR1C = _icrVal;
+		OCR4A = _icrVal;*/
+		runTimer1();
+		runTimer4();
+		TCNT3 = time;
 		TCCR3B |= (1 << CS32);
+		//
+		count++;
+		Serial.println("hihi0");
+	}
+	else {
+		if (_smooth == count) {
+			stopState();
+			return;
+		}
+		settingTimer1(_fre, _firstValue + step * count);
+		settingTimer4(_fre, _firstValue + step * count);
+		TCNT3 = time;
+		//TCCR3B |= (1 << CS32);
 		count++;
 		Serial.println("hihi");
 	}
@@ -401,5 +387,23 @@ void timerFuncIncreSpeed(int _time, int* _arrA, int* _arrB) {
 		stopTimer4();
 	}
 }
+
+//void runConstSpeed(int _time) {
+//	if (_time > 1000) {
+//		if (count == 0) {
+//			TCNT3 = getBottomTimerNomalMode(_time);
+//			count++;
+//		}
+//		else {
+//			
+//		}
+//	}
+//	else {
+//
+//		TCNT3 = getBottomTimerNomalMode(_time);
+//		count &= 0;
+//		mode &= 2;
+//	}
+//}
 
 #endif // !_PWM_TIMER_H_
