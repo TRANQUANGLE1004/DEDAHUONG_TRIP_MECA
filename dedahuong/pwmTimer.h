@@ -261,7 +261,7 @@ void stopState() {
 
 // 5 distance //
 // _firstValueChanelA is ICR value
-void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000) {
+void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000,byte _mode = 0) {
 	unsigned short time = getBottomTimerNomalMode(_time);
 	int step = (int)((float)(_endValue - _firstValue) / (float)_smooth);
 	if (count == 0) {
@@ -277,28 +277,42 @@ void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 		TCCR3B |= (1 << CS32);
 		//
 		count++;
-		Serial.println("hihi0");
+		//Serial.println("hihi0");
 	}
 	else {
 		if (_smooth == count) { 
+			if (_mode == 0) {
+				TCNT3 = time;
+				count &= 0;
+				mode++;
+				return;
+			}
+			else if (_mode == 1) {
+				stopState();
+				stopTimer3();
+				return;
+			}
+			else if (_mode == 2) {
+				//
+				return;
+			}
 			//stopState();
-			TCNT3 = time;
-			count &= 0;
-			mode++;
-			return; 
+			
 		}
-		settingTimer1(_fre, _firstValue + step * count);
-		settingTimer4(_fre, _firstValue + step * count);
+		settingTimer1(_fre, (int)((float)_firstValue + step * count));
+		settingTimer4(_fre, (int)((float)_firstValue + step * count));
 		TCNT3 = time;
 		//TCCR3B |= (1 << CS32);
 		count++;
-		Serial.println("hihi");
+		//Serial.println("hihi");
 	}
 }
 
-void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000) {
+// mode 0: -> -> ->
+//mode 1: dependent
+void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000,byte _mode = 0) {
 	unsigned short time = getBottomTimerNomalMode(_time);
-	int step = (int)((float)(_endValue - _firstValue) / (float)_smooth);
+	float step = (float)(_endValue - _firstValue) / (float)_smooth;
 	if (count == 0) {
 		//
 		settingTimer1(_fre, _firstValue);
@@ -312,22 +326,29 @@ void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 		TCCR3B |= (1 << CS32);
 		//
 		count++;
-		Serial.println("hihi0");
+		//Serial.println("hihi0");
 	}
 	else {
 		if (_smooth == count) {
-			TCNT3 = time;
-			count &= 0;
-			mode &= 0;
-			task++;
-			return;
+			if (_mode == 0) {
+				TCNT3 = time;
+				count &= 0;
+				mode &= 0;
+				task++;
+				return;
+			}
+			else {
+				stopState();
+				stopTimer3();
+				return;
+			}
 		}
-		settingTimer1(_fre, _firstValue + step * count);
-		settingTimer4(_fre, _firstValue + step * count);
+		settingTimer1(_fre, (int)((float)_firstValue + step * count));
+		settingTimer4(_fre, (int)((float)_firstValue + step * count));
 		TCNT3 = time;
 		//TCCR3B |= (1 << CS32);
 		count++;
-		Serial.println("hihi");
+		//Serial.println("hihi");
 	}
 }
 

@@ -38,12 +38,13 @@ void setup() {
 	//hamkhoidong();
 	//TCCR1B |= (1 << CS12);
 	//runStraight(speed, speed);
+	task = 9999;
 	initTimer3();
 }
 
-void loop() {
-
-}
+//void loop() {
+//
+//}
 
 
 //void loop() {
@@ -140,6 +141,12 @@ ISR(TIMER3_OVF_vect) {
 			break;
 		}
 		break;
+	case 9999: // ham tang toc doc lap
+		timerFuncIncreFre(10,253,0,100,8000,1);
+		break;
+	case 10000:
+		timerFuncDecreFre(10, 0, 253, 100, 8000,1);
+		break; // ham giam toc doc lap
 	default:
 		break;
 	}
