@@ -36,6 +36,15 @@
     <ClInclude Include="pwmLib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BNO055.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PID_v1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BNO055_support.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="control.cpp">
@@ -45,6 +54,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pwmLib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BNO055.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PID_v1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BNO055_support.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

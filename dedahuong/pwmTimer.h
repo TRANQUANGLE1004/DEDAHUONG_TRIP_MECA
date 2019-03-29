@@ -3,6 +3,7 @@
 #define _PWM_TIMER_H_
 #include<avr/interrupt.h>
 #include<Arduino.h>
+#include"pwmLib.h"
 #define fd			(1.0f/16000000.0f)	// frequency default atmega 2560
 #define fre			16000
 #define FIFTY_MS	62410	
@@ -10,16 +11,20 @@
 use pin ???
 */
 
-//
+// volatile variable
 volatile int count = 0;
 volatile int mode = 0;
 volatile int task = 0;
+volatile int taskTimer5 = 0;
+//
+
 //
 unsigned short timer3;
 void genPWMTimer1(int frequency);
 void genPWMTimer4(int frequency);
 unsigned short settingPulseUseTimer3(int _time);
 void settingPulseUseTimer5(int _time);
+unsigned short getBottomTimerNomalMode(int _time);
 // _num is pulse/1s ex: 1000 pulse/second
 
 void pulseGenMecanum(int _num, int _time = 0) { //use timer 1 & timer 3
@@ -34,7 +39,7 @@ void pulseGenMecanum(int _num, int _time = 0) { //use timer 1 & timer 3
 			digitalWrite(PIN_DIR_MECANUM_RIGHT, !DIRECTION_MECANUM_RIGHT);
 			genPWMTimer1(-_num);
 		}
-		
+
 	}
 	else {
 		if (_num > 0) {
@@ -51,12 +56,12 @@ void pulseGenMecanum(int _num, int _time = 0) { //use timer 1 & timer 3
 			//TCCR3B |= (1 << CS32);// bat timer3 || prescaler = 256
 		}
 		// khoi dong timer 3
-		
+
 	}
 }
 void pulseGenOmni(int _num, int _time = 0) { // use timer 4,5
 	if (_time == 0) {
-		if (_num>0) {
+		if (_num > 0) {
 			digitalWrite(PIN_DIR_OMNI, DIRECTION_OMNI);
 			//delay(50);
 			genPWMTimer4(_num);
@@ -66,7 +71,7 @@ void pulseGenOmni(int _num, int _time = 0) { // use timer 4,5
 			//delay(50);
 			genPWMTimer4(-_num);
 		}
-		
+
 	}
 	else {
 		// timer 5
@@ -108,6 +113,15 @@ void initTimer3() {
 	TIMSK3 = 0;
 	TIMSK3 |= (1 << TOIE3);
 	TCCR3B |= (1 << CS32);
+}
+void initTimer5() {
+	//Serial.println("Init timer 5");
+	TCCR5B = 0;
+	TCCR5A = 0;
+	TIMSK5 = 0;
+	TIMSK5 |= (1 << TOIE5);
+	TCCR5B |= (1 << CS52);
+	TCNT3 = getBottomTimerNomalMode(50);
 }
 
 unsigned short settingPulseUseTimer3(int _time) {
@@ -185,21 +199,22 @@ void genPWMTimer4(int frequency) {//use timer4
 	OCR4A = 1984;
 	TCCR4B |= (1 << CS40);
 }
-
+void settingTimer1(int _valMecaLeft, int _valMecaRight, int _icrVal = 8000);
+void settingTimer4(int _val, int _icrVal = 8000);
 void rotateClockWise(int _num) {
 	digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
 	digitalWrite(PIN_DIR_MECANUM_RIGHT, !DIRECTION_MECANUM_RIGHT);
 	digitalWrite(PIN_DIR_OMNI, !DIRECTION_OMNI);
-	genPWMTimer4((int)((float)_num*800.0f*1.55f));
-	genPWMTimer1(_num*1000);
+	settingTimer1(_num, _num);
+	settingTimer4(_num);
 }
 
 void rotateInvertClockWise(int _num) {
 	digitalWrite(PIN_DIR_MECANUM_LEFT, !DIRECTION_MECANUM_LEFT);
 	digitalWrite(PIN_DIR_MECANUM_RIGHT, DIRECTION_MECANUM_RIGHT);
 	digitalWrite(PIN_DIR_OMNI, DIRECTION_OMNI);
-	genPWMTimer4((int)((float)_num*800.0f*1.55f));
-	genPWMTimer1(_num * 1000);
+	settingTimer1(_num, _num);
+	settingTimer4(_num);
 }
 
 
@@ -210,6 +225,7 @@ void run(int maxFre, int _pulseSum, byte _mode = 0) { // 12000 pulse in 3s
 	// mode default divide 
 
 }
+
 
 unsigned short getICRFastPWM(int _frequency) {
 	float t = (1.0f / (float)_frequency) / (fd);
@@ -224,50 +240,40 @@ unsigned short getBottomTimerNomalMode(int _time) {
 	return _val;
 }
 
-void settingTimer1(int _icrVal, int _val = 0) { // use Fast PWM
-	if (_val == 0) { // default duty cycle : 50%
-		OCR1A = _icrVal/2;
-		OCR1C = _icrVal/2;
-		ICR1 = _icrVal;
-	}
-	else {
-		OCR1A = (int)((float)_val*(float)_icrVal/255.0f);
-		OCR1C = (int)((float)_val*(float)_icrVal / 255.0f);
-		ICR1 = _icrVal;
-	}
-	
+void settingTimer1(int _valMecaLeft, int _valMecaRight, int _icrVal = 8000) { // use Fast PWM
+	unsigned short topPWM = getValuePwm(_icrVal);
+	OCR1C = (int)((float)_valMecaLeft*(float)topPWM / 255.0f);
+	OCR1A = (int)((float)_valMecaRight*(float)topPWM / 255.0f);
+	ICR1 = topPWM;
 	// Notice !!!
 }
-void settingTimer4(int _icrVal, int _val = 0) { // use Fast PWM
-	if (_val == 0) { // default duty cycle : 50%
-		OCR4A = _icrVal/2;
-		ICR4 = _icrVal;
-	}
-	else {
-		OCR4A = (int)((float)_val*(float)_icrVal / 255.0f);
-		ICR4 = _icrVal;
-	}
-
+void settingTimer4(int _val, int _icrVal = 8000) { // use Fast PWM
+	unsigned short topPwm = getValuePwm(_icrVal);
+	OCR4A = (int)((float)_val*(float)topPwm / 255.0f);
+	ICR4 = topPwm;
 }
-void runTimer1() {	TCCR1B |= (1 << CS10); }
-void runTimer4() {	TCCR4B |= (1 << CS40); }
-void stopTimer1(){	TCCR1B &= 0xF8; }
-void stopTimer4(){	TCCR4B &= 0xF8; }
-void stopTimer3(){	TCCR3B &= 0xF8; }
+void runTimer1() { TCCR1B |= (1 << CS10); }
+void runTimer4() { TCCR4B |= (1 << CS40); }
+void stopTimer1() { TCCR1B &= 0xF8; }
+void stopTimer4() { TCCR4B &= 0xF8; }
+void stopTimer3() { TCCR3B &= 0xF8; }
+void stopTimer5() { TCCR5B &= 0xF8; }
 void stopState() {
-	settingTimer1(8000, 253);
-	settingTimer4(8000, 253);
+	settingTimer1(253, 253);
+	settingTimer4(253);
+	runTimer1();
+	runTimer4();
 }
 
 // 5 distance //
 // _firstValueChanelA is ICR value
-void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000,byte _mode = 0) {
+void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000, byte _mode = 0) {
 	unsigned short time = getBottomTimerNomalMode(_time);
-	int step = (int)((float)(_endValue - _firstValue) / (float)_smooth);
+	float step = (float)(_endValue - _firstValue) / (float)_smooth;
 	if (count == 0) {
 		//
-		settingTimer1(_fre,_firstValue);
-		settingTimer4(_fre,_firstValue);
+		settingTimer1(_firstValue, _firstValue);
+		settingTimer4(_firstValue);
 		/*OCR1A = _icrVal;
 		OCR1C = _icrVal;
 		OCR4A = _icrVal;*/
@@ -280,7 +286,7 @@ void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 		//Serial.println("hihi0");
 	}
 	else {
-		if (_smooth == count) { 
+		if (_smooth == count) {
 			if (_mode == 0) {
 				TCNT3 = time;
 				count &= 0;
@@ -288,19 +294,21 @@ void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 				return;
 			}
 			else if (_mode == 1) {
+				count &= 0;
 				stopState();
 				stopTimer3();
 				return;
 			}
 			else if (_mode == 2) {
 				//
+				TCNT3 = time;
 				return;
 			}
 			//stopState();
-			
+
 		}
-		settingTimer1(_fre, (int)((float)_firstValue + step * count));
-		settingTimer4(_fre, (int)((float)_firstValue + step * count));
+		settingTimer1((int)((float)_firstValue + step * (float)count), (int)((float)_firstValue + step * (float)count));
+		settingTimer4((int)((float)_firstValue + step * (float)count));
 		TCNT3 = time;
 		//TCCR3B |= (1 << CS32);
 		count++;
@@ -310,13 +318,13 @@ void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 
 // mode 0: -> -> ->
 //mode 1: dependent
-void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000,byte _mode = 0) {
+void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000, byte _mode = 0) {
 	unsigned short time = getBottomTimerNomalMode(_time);
 	float step = (float)(_endValue - _firstValue) / (float)_smooth;
 	if (count == 0) {
 		//
-		settingTimer1(_fre, _firstValue);
-		settingTimer4(_fre, _firstValue);
+		settingTimer1(_firstValue, _firstValue);
+		settingTimer4(_firstValue);
 		/*OCR1A = _icrVal;
 		OCR1C = _icrVal;
 		OCR4A = _icrVal;*/
@@ -338,13 +346,14 @@ void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 				return;
 			}
 			else {
+				count &= 0;
 				stopState();
-				stopTimer3();
+				//stopTimer3();
 				return;
 			}
 		}
-		settingTimer1(_fre, (int)((float)_firstValue + step * count));
-		settingTimer4(_fre, (int)((float)_firstValue + step * count));
+		settingTimer1((int)((float)_firstValue + step * (float)count), (int)((float)_firstValue + step * (float)count));
+		settingTimer4((int)((float)_firstValue + step * (float)count));
 		TCNT3 = time;
 		//TCCR3B |= (1 << CS32);
 		count++;
@@ -352,66 +361,31 @@ void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 	}
 }
 
-
-void timerFuncIncreSpeed(int _time, int* _arrA, int* _arrB) {
-	unsigned short time = getBottomTimerNomalMode(_time);
-	if (count == 0) {
-		//
-		settingTimer1(_arrA[count]);
-		settingTimer4(_arrB[count]);
-		runTimer1();
-		runTimer4();
-		TCNT3 = _time;
-		TCCR3B |= (1 << CS32);
-		//
-		count++;
-		//Serial.println("hihi");
-	}
-	else if (count == 1) {
-		//Serial.println(micros() - _time);
-		settingTimer1(_arrA[count]);
-		settingTimer4(_arrB[count]);
-		count++;
-		TCNT3 = _time;
-		//8000
-	}
-	else if (count == 2) {
-		//Serial.println(micros() - _time);
-		//Serial.println("hihi");
-		settingTimer1(_arrA[count]);
-		settingTimer4(_arrB[count]);
-		count++;
-		TCNT3 = _time;
-		//4000
-	}
-	else if (count == 3) {
-		//TCNT3 = 59285;
-		//Serial.println(micros() - _time);
-		//Serial.println("hihi");
-		settingTimer1(_arrA[count]);
-		settingTimer4(_arrB[count]);
-		count++;
-		TCNT3 = _time;
-		//2000
-	}
-	else if (count == 4) {
-		//TCNT3 = 59285;
-		//Serial.println(micros() - _time);
-		//Serial.println("hihi");
-		settingTimer1(_arrA[count]);
-		settingTimer4(_arrB[count]);
-		count++;
-		TCNT3 = _time;
-		//mode += 1;
-		//count &= 0;
-		//1000
-	}
-	else {
-		//stopTimer3();
-		stopTimer1();
-		stopTimer4();
-	}
+// delta is chenh lech 2 banh Right - Left
+void runAndCalib(int _speed, int _delta) {
+	// _angle and _speed ==> Vax ()g
+	int _valTemp = (int)((float)_delta / 2.0);
+	settingTimer1(_speed + _valTemp, _speed - _valTemp);
+	settingTimer4(_speed - _valTemp);
+	// out put change OCR1C abd OCR1A + OCR4A
 }
 
+void stopAndCalib(int _delta) {
+	int _current = 253 - abs(_delta);
+	if (_delta >= 0) {
+		setDirection(DIRECTION_OMNI,!DIRECTION_MECANUM_LEFT,DIRECTION_MECANUM_RIGHT);
+		settingTimer1(_current, _current);
+		settingTimer4(_current);
+		runTimer1();
+		runTimer4();
+	}
+	else {
+		setDirection(!DIRECTION_OMNI, DIRECTION_MECANUM_LEFT, !DIRECTION_MECANUM_RIGHT);
+		settingTimer1(_current, _current);
+		settingTimer4(_current);
+		runTimer1();
+		runTimer4();
+	}
+}
 
 #endif // !_PWM_TIMER_H_
