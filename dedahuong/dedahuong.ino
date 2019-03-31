@@ -3,6 +3,7 @@
  Created:	7/11/2018 2:05:53 PM
  Author:	quang
  {@Plot.MyPlotWindow.Temp.Blue temperature}
+ double Kp = 3.15, Ki = 7.56, Kd = 0.01; stop 
 */
 #include"Configuration.h"
 #include <Wire.h>
@@ -13,9 +14,12 @@
 
 //#include"hc05.h"
 //
-char recv= 'S';
+char recv = 'S';
+char tempRecv;
 int speed = 150;
 int state = 0;
+int valueSpeed;
+unsigned long timeMillis;
 //
 struct bno055_t myBNO;
 signed short eulerYaw;
@@ -23,7 +27,7 @@ int caliValue;
 int angle;
 int cnt = 0;
 // the setup function runs once when you press reset or power the board
-double Kp = 1.5, Ki = 1, Kd = 1;
+double Kp = 3.15, Ki = 7.56, Kd = 0.01;
 double Setpoint, Input, Output;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, REVERSE);
 //
@@ -45,6 +49,16 @@ void setup() {
 	//
 	pinMode(PIN_PULSE_MECANUM_RIGHT, OUTPUT);
 	pinMode(PIN_DIR_MECANUM_RIGHT, OUTPUT);
+	//
+	pinMode(PIN_KHI23, OUTPUT);
+	pinMode(PIN_KHI24, OUTPUT);
+	pinMode(PIN_KHI25, OUTPUT);
+	pinMode(PIN_KHI26, OUTPUT);
+	//
+	digitalWrite(PIN_KHI23, LOW);
+	digitalWrite(PIN_KHI24, LOW);
+	digitalWrite(PIN_KHI25, LOW);
+	digitalWrite(PIN_KHI26, LOW);
 	// init BNO055
 	BNO_Init(&myBNO);
 	bno055_set_operation_mode(OPERATION_MODE_IMUPLUS);
@@ -61,13 +75,15 @@ void setup() {
 	Setpoint = 0.0; 
 	myPID.SetMode(AUTOMATIC);
 	myPID.SetOutputLimits(-100, 100);
-	myPID.SetSampleTime(10);
+	myPID.SetSampleTime(100);
 	//myPID.SetSampleTime(100);
 	setDirection(DIRECTION_OMNI, DIRECTION_MECANUM_LEFT, DIRECTION_MECANUM_RIGHT);
 
 	//initTimer5();
 	//stopState();
 }
+
+
 
 void loop() {
 	//runAndCalib(speed, 2*readAngle());
@@ -77,53 +93,100 @@ void loop() {
 		switch (recv)
 		{
 		case 'F':
+			//Serial.println("F0");
 			setDirection(DIRECTION_OMNI, DIRECTION_MECANUM_LEFT, DIRECTION_MECANUM_RIGHT);
-			//
-			settingTimer1(speed, speed);
-			settingTimer4(speed);
-			runTimer1();
-			runTimer4();
+			//tang toc
+			task = 9998;
+			initTimer3();
 			//
 			break;
 		case 'B':
 			setDirection(!DIRECTION_OMNI, !DIRECTION_MECANUM_LEFT, !DIRECTION_MECANUM_RIGHT);
-
+			task = 9998;
+			initTimer3();
 			break;
 		case 'L':
 			setDirection(DIRECTION_OMNI, !DIRECTION_MECANUM_LEFT, !DIRECTION_MECANUM_RIGHT);
-
+			task = 9998;
+			initTimer3();
 			break;
 		case'R':
 			setDirection(!DIRECTION_OMNI, DIRECTION_MECANUM_LEFT, DIRECTION_MECANUM_RIGHT);
-
+			task = 9998;
+			initTimer3();
 			break;
 		case'J':
-			rotateClockWise(5);
+			rotateClockWise(speed);
 			break;
 		case'G':
-			rotateInvertClockWise(5);
+			rotateInvertClockWise(speed);
 			break;
 		case'S':
-			stopState();
+			if (tempRecv == 'F'|| tempRecv == 'B'||tempRecv == 'L'|| tempRecv == 'R') {
+				//giam toc
+				Serial.println("giam toc");
+				task = 10000;
+				initTimer3();
+				timeMillis = millis();
+				//
+				count &= 0;
+			}
+			else {
+				if (millis() - timeMillis >= DECELERATION_TIME) {
+					count &= 0;
+					stopState();
+					stopTimer3();
+				}
+			}
 			break;
 		default:
 			stopState();
 			break;
 		}
+		tempRecv = recv;
 	}
-	if (recv == 'S') {
-		Input = readAngle();
-		Serial.print(Input);
-		myPID.Compute();
-		stopAndCalib(Output);
-		Serial.print("--- ");
-		Serial.println(Output);
-	}
-	else if (recv == 'F') {
-		Input = readAngle();
-		myPID.Compute();
-		runAndCalib(speed, Output);
-	}
+	//if (recv == 'S') {
+	//	Input = readAngle();
+	//	if (Input == 0) {
+	//		stopAndCalib(0);
+	//	}
+	//	else {
+	//		myPID.SetTunings(3.15, 7.56, 0.01);
+	//		myPID.Compute();
+	//		stopAndCalib(Output);
+	//	}
+	//	Serial.print(Input);
+	//	Serial.print("------> ");
+	//	Serial.println(Output);
+	//}
+	//else if (recv == 'F') {
+	//	myPID.SetTunings(0, 0, 0);
+	//	Input = readAngle();
+	//	myPID.Compute();
+	//	runAndCalib(speed, Output);
+	//}
+	////test
+	//else if (recv == 'B') {
+	//	myPID.SetTunings(0, 0, 0);
+	//	Input = readAngle();
+	//	myPID.Compute();
+	//	backAndCalib(speed, Output);
+	//}
+	//else if (recv == 'R') {
+	//	myPID.SetTunings(2, 4, 0.1); // change PID
+	//	Input = readAngle();
+	//	myPID.Compute();
+	//	runAndCalib(speed, Output);
+	//}
+	//else if (recv == 'L') {
+	//	myPID.SetTunings(2, 4, 0.1); // change PID
+	//	Input = readAngle();
+	//	myPID.Compute();
+	//	backAndCalib(speed, Output);
+	//}
+	//else if (recv == 'G') {
+	//	// update Setpoint
+	//}
 }
 
 
@@ -177,7 +240,7 @@ ISR(TIMER3_OVF_vect) {
 		switch (mode)
 		{
 		case 0:// mode tang toc
-			timerFuncIncreFre(10, 252, 0, 100);
+			timerFuncIncreFre(10, 252, speed, 100,valueSpeed);
 			//Serial.println("hihi");
 			break;
 		case 1:// mode chay on dinh toc do trong bao nhieu ms
@@ -203,7 +266,7 @@ ISR(TIMER3_OVF_vect) {
 		switch (mode)
 		{
 		case 0:
-			timerFuncIncreFre(10, 252, 0, 100);
+			timerFuncIncreFre(10, 252, speed, 100,valueSpeed);
 			break;
 		default:
 			break;
@@ -211,14 +274,14 @@ ISR(TIMER3_OVF_vect) {
 		break;
 	case 9998: // tang toc va giu on dinh toc do
 		//Serial.println("ham tang toc");
-		timerFuncIncreFre(10, 220, speed, 1000, 8000, 2);
+		timerFuncIncreFre(10, 220, speed, SAMPLE_NUMBER, valueSpeed, 2);
 		break;
 	case 9999: // ham tang toc doc lap
-		timerFuncIncreFre(5, 220, speed, 200, 8000, 1);
+		timerFuncIncreFre(10, 220, speed, SAMPLE_NUMBER, valueSpeed, 1);
 		break;
 	case 10000:
 		//Serial.println("chay ham giam toc");
-		timerFuncDecreFre(5, speed, 220, 100, 8000, 1);
+		timerFuncDecreFre(10, valueSpeed, 220, SAMPLE_NUMBER, 8000, 1);
 		break; // ham giam toc doc lap
 	default:
 		break;
@@ -233,7 +296,13 @@ int readAngle() {
 	int _angle = map(eulerYaw, 0, 5759, 0, 359);
 	int _val = calibrateFunc(_angle, caliValue);
 	if (_val >180) {
+		if (_val - 360 >= Setpoint - 1) {
+			return 0;
+		}
 		return _val - 360;
+	}
+	if (_val <= Setpoint + 1) {
+		return 0;
 	}
 	return _val;
 }

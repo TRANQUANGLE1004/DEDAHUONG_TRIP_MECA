@@ -113,6 +113,7 @@ void initTimer3() {
 	TIMSK3 = 0;
 	TIMSK3 |= (1 << TOIE3);
 	TCCR3B |= (1 << CS32);
+	TCNT3 = getBottomTimerNomalMode(10);
 }
 void initTimer5() {
 	//Serial.println("Init timer 5");
@@ -267,7 +268,8 @@ void stopState() {
 
 // 5 distance //
 // _firstValueChanelA is ICR value
-void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000, byte _mode = 0) {
+void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, int & _getSpeed, byte _mode = 0) {
+	Serial.println("Debug :: time Incre Func");
 	unsigned short time = getBottomTimerNomalMode(_time);
 	float step = (float)(_endValue - _firstValue) / (float)_smooth;
 	if (count == 0) {
@@ -307,8 +309,10 @@ void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 			//stopState();
 
 		}
-		settingTimer1((int)((float)_firstValue + step * (float)count), (int)((float)_firstValue + step * (float)count));
-		settingTimer4((int)((float)_firstValue + step * (float)count));
+		_getSpeed = (int)((float)_firstValue + step * (float)count);
+		//Serial.println(_getSpeed);
+		settingTimer1(_getSpeed, _getSpeed);
+		settingTimer4(_getSpeed);
 		TCNT3 = time;
 		//TCCR3B |= (1 << CS32);
 		count++;
@@ -348,7 +352,7 @@ void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 			else {
 				count &= 0;
 				stopState();
-				//stopTimer3();
+				stopTimer3();
 				return;
 			}
 		}
@@ -369,7 +373,13 @@ void runAndCalib(int _speed, int _delta) {
 	settingTimer4(_speed - _valTemp);
 	// out put change OCR1C abd OCR1A + OCR4A
 }
-
+void backAndCalib(int _speed, int _delta) {
+	// _angle and _speed ==> Vax ()g
+	int _valTemp = (int)((float)_delta / 2.0);
+	settingTimer1(_speed - _valTemp, _speed + _valTemp);
+	settingTimer4(_speed + _valTemp);
+	// out put change OCR1C abd OCR1A + OCR4A
+}
 void stopAndCalib(int _delta) {
 	int _current = 253 - abs(_delta);
 	if (_delta >= 0) {

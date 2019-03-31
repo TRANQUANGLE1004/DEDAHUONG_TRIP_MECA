@@ -18,4 +18,11 @@
 #define LOCK 2
 #define FREE_STATE 0
 
+#define PIN_KHI23	23
+#define PIN_KHI24	24
+#define PIN_KHI25	25
+#define PIN_KHI26	26
+
+#define DECELERATION_TIME 1000
+#define SAMPLE_NUMBER	50
 #endif // !_CONFIGURATION_H_
