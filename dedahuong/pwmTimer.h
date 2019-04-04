@@ -25,6 +25,7 @@ void genPWMTimer4(int frequency);
 unsigned short settingPulseUseTimer3(int _time);
 void settingPulseUseTimer5(int _time);
 unsigned short getBottomTimerNomalMode(int _time);
+void runTripMeca(int _vO, int _vL, int _vR);
 // _num is pulse/1s ex: 1000 pulse/second
 
 void pulseGenMecanum(int _num, int _time = 0) { //use timer 1 & timer 3
@@ -122,7 +123,7 @@ void initTimer5() {
 	TIMSK5 = 0;
 	TIMSK5 |= (1 << TOIE5);
 	TCCR5B |= (1 << CS52);
-	TCNT3 = getBottomTimerNomalMode(50);
+	TCNT3 = getBottomTimerNomalMode(10);
 }
 
 unsigned short settingPulseUseTimer3(int _time) {
@@ -269,7 +270,9 @@ void stopState() {
 // 5 distance //
 // _firstValueChanelA is ICR value
 void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, int & _getSpeed, byte _mode = 0) {
-	Serial.println("Debug :: time Incre Func");
+	//Serial.println("Debug :: time Incre Func");
+	_firstValue = 253 - _firstValue;
+	_endValue = 253 - _endValue;
 	unsigned short time = getBottomTimerNomalMode(_time);
 	float step = (float)(_endValue - _firstValue) / (float)_smooth;
 	if (count == 0) {
@@ -322,7 +325,9 @@ void timerFuncIncreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 
 // mode 0: -> -> ->
 //mode 1: dependent
-void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, int _fre = 8000, byte _mode = 0) {
+void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, int & _getSpeed, byte _mode = 0) {
+	_firstValue = 253 - _firstValue;
+	_endValue = 253 - _endValue;
 	unsigned short time = getBottomTimerNomalMode(_time);
 	float step = (float)(_endValue - _firstValue) / (float)_smooth;
 	if (count == 0) {
@@ -341,7 +346,7 @@ void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 		//Serial.println("hihi0");
 	}
 	else {
-		if (_smooth == count) {
+		if (_smooth == count-1) {
 			if (_mode == 0) {
 				TCNT3 = time;
 				count &= 0;
@@ -350,14 +355,17 @@ void timerFuncDecreFre(int _time, int _firstValue, int _endValue, int _smooth, i
 				return;
 			}
 			else {
+				Serial.println("Stop giam toc");
 				count &= 0;
 				stopState();
 				stopTimer3();
+				task = 1234;
 				return;
 			}
 		}
-		settingTimer1((int)((float)_firstValue + step * (float)count), (int)((float)_firstValue + step * (float)count));
-		settingTimer4((int)((float)_firstValue + step * (float)count));
+		_getSpeed = (int)((float)_firstValue + step * (float)count);
+		settingTimer1(_getSpeed,_getSpeed);
+		settingTimer4(_getSpeed);
 		TCNT3 = time;
 		//TCCR3B |= (1 << CS32);
 		count++;
@@ -396,6 +404,189 @@ void stopAndCalib(int _delta) {
 		runTimer1();
 		runTimer4();
 	}
+}
+
+void runAngle(int _angle,int _speed) {
+	if (_angle > 360) {
+		int _a = _angle / 360;
+		_angle = _angle - _a * 360;
+	}
+	if (_angle >= 0 && _angle <= 90) {
+		//
+		if (_angle <= 45) {
+			setDirection(!DIRECTION_OMNI, DIRECTION_MECANUM_LEFT, DIRECTION_MECANUM_RIGHT);
+			int _temp = (int)(float(_speed) - float(_angle)*float(_speed)/45.0);
+			settingTimer1(_speed,_speed);
+			settingTimer4(_temp);
+		}
+		else {
+			setDirection(DIRECTION_OMNI, DIRECTION_MECANUM_LEFT, DIRECTION_MECANUM_RIGHT);
+			int _temp = (float(_angle) - 45.0)*float(_speed) / 45.0;
+			settingTimer1(_speed, _speed);
+			settingTimer4(_temp);
+		}
+	}
+	else if (_angle > 90 && _angle <= 180) {
+		//
+		if (_angle <= 135) {
+			setDirection(DIRECTION_OMNI, DIRECTION_MECANUM_LEFT, DIRECTION_MECANUM_RIGHT);
+			int _temp = (int)(float(_speed) - (float(_angle)- 90.0)*float(_speed) / 45.0);
+			settingTimer1(_temp, _temp);
+			settingTimer4(_speed);
+		}
+		else {
+			setDirection(DIRECTION_OMNI, !DIRECTION_MECANUM_LEFT, !DIRECTION_MECANUM_RIGHT);
+			int _temp = (float(_angle) - 135.0)*float(_speed) / 45.0;
+			settingTimer1(_temp, _temp);
+			settingTimer4(_speed);
+		}
+	}
+	else if (_angle > 180 && _angle <= 270) {
+		//
+		if (_angle <= 225) {
+			setDirection(DIRECTION_OMNI, !DIRECTION_MECANUM_LEFT, !DIRECTION_MECANUM_RIGHT);
+			int _temp = (int)(float(_speed) - (float(_angle) - 180.0)*float(_speed) / 45.0);
+			settingTimer1(_speed, _speed);
+			settingTimer4(_temp);
+		}
+		else {
+			setDirection(!DIRECTION_OMNI, !DIRECTION_MECANUM_LEFT, !DIRECTION_MECANUM_RIGHT);
+			int _temp = (float(_angle) - 225.0)*float(_speed) / 45.0;
+			settingTimer1(_speed, _speed);
+			settingTimer4(_temp);
+		}
+	}
+	else if (_angle > 270 && _angle <= 360) {
+		if (_angle <= 315) {
+			setDirection(!DIRECTION_OMNI, !DIRECTION_MECANUM_LEFT, !DIRECTION_MECANUM_RIGHT);
+			int _temp = (int)(float(_speed) - (float(_angle) - 270)*float(_speed) / 45.0);
+			settingTimer1(_temp, _temp);
+			settingTimer4(_speed);
+		}
+		else {
+			setDirection(!DIRECTION_OMNI, DIRECTION_MECANUM_LEFT, DIRECTION_MECANUM_RIGHT);
+			int _temp = (float(_angle) - 315.0)*float(_speed) / 45.0;
+			settingTimer1(_temp, _temp);
+			settingTimer4(_speed);
+		}
+	}
+	else {
+		// 
+		Serial.println("ERROR ANGLE");
+		return;
+	}
+}
+
+float runAndCalibEncoderX(int _delta, bool runBack = 0) { //default chay ve phia truoc
+	if (runBack == 0) {
+		float _angle = 90.0 + float(_delta)*45.0 / NUMBER_CONFIG;
+		return _angle * PI / 180.0;
+	}
+	else {
+		int _angle = 270.0 - float(_delta)*45.0 / NUMBER_CONFIG;
+		return _angle * PI / 180.0;
+	}
+}
+
+void runAndCalibEncoderY(int _speed, int _delta, bool runLeft = 0) { //default chay ve phia truoc
+	if (runLeft == 0) {
+		int _angle = 360 - float(_delta)*45.0 / 600.0;
+		runAngle(_angle, _speed);
+	}
+	else {
+		int _angle = 180 + float(_delta)*45.0 / 600.0;
+		runAngle(_angle, _speed);
+	}
+}
+
+void runAngleUpdate(float _speed, float _angle, float _rotateAngle = 0) {
+	if (_rotateAngle == 0) {
+		Serial.println("Not Rotate");
+		int _vOx, _vLx, _vRx; // =>  v generate from VX vector
+		int _vO, _vL, _vR; // =>  v generate from Vy vector
+		float _vX = _speed * cos(_angle);
+		float _vY = _speed * sin(_angle);
+		/*Serial.print("_vX : ");
+		Serial.println(_vX);
+		Serial.print("_vY : ");
+		Serial.println(_vY);*/
+		//
+		_vOx = -_vX;
+		_vLx = _vX;
+		_vRx = _vX;
+		_vO = _vOx + _vY;
+		_vL = _vLx + _vY;
+		_vR = _vRx + _vY;
+		// run
+
+		Serial.print("vO : ");
+		Serial.println(_vO);
+		Serial.print("vL : ");
+		Serial.println(_vL);
+		Serial.print("vR : ");
+		Serial.println(_vR);
+		runTripMeca(_vO, _vL, _vR);
+		//
+	}
+	else {
+		Serial.println("Rotate");
+		int _vOx, _vLx, _vRx; // =>  v generate from VX vector
+		int _vOr, _vLr, _vRr; // => v generate from rotate vector 
+		int _vO, _vL, _vR; // =>  v generate from Vy vector
+		float _vX = _speed * cos(_angle);
+		float _vY = _speed * sin(_angle);
+		/*Serial.print("_vX : ");
+		Serial.println(_vX);
+		Serial.print("_vY : ");
+		Serial.println(_vY);*/
+		//
+		_vOx = -_vX;
+		_vLx = _vX;
+		_vRx = _vX;
+		_vOr = _rotateAngle / 2.0;
+		_vRr = _rotateAngle / 2.0;
+		_vLr = -_rotateAngle / 2.0;
+
+		_vO = _vOx + _vY + _vOr;
+		_vL = _vLx + _vY + _vLr;
+		_vR = _vRx + _vY + _vRr;
+		// run
+		Serial.print("vO : ");
+		Serial.println(_vO);
+		Serial.print("vL : ");
+		Serial.println(_vL);
+		Serial.print("vR : ");
+		Serial.println(_vR);
+		runTripMeca(_vO, _vL, _vR);
+	}
+}
+
+void runTripMeca(int _vO, int _vL, int _vR) {
+	/*_vO < 0 ? digitalWrite(PIN_DIR_OMNI, !DIRECTION_OMNI) : digitalWrite(PIN_DIR_OMNI, DIRECTION_OMNI);
+	_vL < 0 ? digitalWrite(PIN_DIR_MECANUM_LEFT, !DIRECTION_MECANUM_LEFT) : digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
+	_vR < 0 ? digitalWrite(PIN_DIR_MECANUM_RIGHT, !PIN_DIR_MECANUM_RIGHT) : digitalWrite(PIN_DIR_MECANUM_RIGHT, PIN_DIR_MECANUM_RIGHT);*/
+	if (_vO < 0) {
+		digitalWrite(PIN_DIR_OMNI, !DIRECTION_OMNI);
+	}
+	else {
+		digitalWrite(PIN_DIR_OMNI, DIRECTION_OMNI);
+	}
+	if (_vL < 0) {
+		digitalWrite(PIN_DIR_MECANUM_LEFT, !DIRECTION_MECANUM_LEFT);
+	}
+	else {
+		digitalWrite(PIN_DIR_MECANUM_LEFT, DIRECTION_MECANUM_LEFT);
+	}
+	if (_vR < 0) {
+		digitalWrite(PIN_DIR_MECANUM_RIGHT, !DIRECTION_MECANUM_RIGHT);
+	}
+	else {
+		digitalWrite(PIN_DIR_MECANUM_RIGHT, DIRECTION_MECANUM_RIGHT);
+	}
+	settingTimer1(253 - abs(_vL), 253 - abs(_vR));
+	settingTimer4(253 - abs(_vO));
+	runTimer1();
+	runTimer4();
 }
 
 #endif // !_PWM_TIMER_H_

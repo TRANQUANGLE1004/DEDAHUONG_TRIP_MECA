@@ -23,6 +23,16 @@
 #define PIN_KHI25	25
 #define PIN_KHI26	26
 
-#define DECELERATION_TIME 1000
+#define DECELERATION_TIME 500
 #define SAMPLE_NUMBER	50
+
+#define		Kp_Y	4
+#define		Ki_Y	10
+#define		Kd_Y	0.1
+
+#define		Kp_X	2
+#define		Ki_X	4
+#define		Kd_X	0.1
+
+#define		NUMBER_CONFIG	100.0
 #endif // !_CONFIGURATION_H_
